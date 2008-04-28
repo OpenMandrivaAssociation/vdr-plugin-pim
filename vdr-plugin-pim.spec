@@ -2,7 +2,7 @@
 %define plugin	pim
 %define name	vdr-plugin-%plugin
 %define version	0.0.8
-%define rel	1
+%define rel	2
 
 Summary:	VDR plugin: Simple Personal Information Manager
 Name:		%name
