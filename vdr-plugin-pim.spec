@@ -13,6 +13,7 @@ License:	GPL
 URL:		http://pim.vdr-developer.org/
 Source:		http://pim.vdr-developer.org/source/vdr-%plugin-%version.tgz
 Patch0:		pim-0.0.8-i18n-1.6.patch
+Patch1:		pim-format-string.patch
 BuildRoot:	%{_tmppath}/%{name}-buildroot
 BuildRequires:	vdr-devel >= 1.6.0
 Requires:	vdr-abi = %vdr_abi
@@ -24,6 +25,7 @@ store events.
 %prep
 %setup -q -n %plugin-%version
 %patch0 -p1
+%patch1 -p1
 %vdr_plugin_prep
 
 %build
