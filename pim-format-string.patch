@@ -1,0 +1,13 @@
+Index: pim-0.0.8/calEvent.c
+===================================================================
+--- pim-0.0.8/calEvent.c
++++ pim-0.0.8/calEvent.c	2009-03-21 11:47:34.000000000 +0200
+@@ -332,7 +332,7 @@
+ bool cCalEvent::Save(FILE *f)
+ {
+   if ( isValid() )
+-    return fprintf (f, toString()) > 0;
++    return fprintf (f, "%s", toString()) > 0;
+   else
+     return false;
+ }

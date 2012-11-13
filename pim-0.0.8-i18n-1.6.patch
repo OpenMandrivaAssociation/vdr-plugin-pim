@@ -1,0 +1,3652 @@
+
+This is a semi-automatically created i18n adaptation patch and may contain
+errors (such as missing translations). This should only be used as a
+temporary measure until the upstream plugin maintainer fixes the plugin
+properly according to the instructions in i18n-to-gettext.pl.
+
+Created for Mandriva Linux packaging by Anssi Hannula <anssi@mandriva.org>.
+
+
+Index: pim-0.0.8/Makefile
+===================================================================
+--- pim-0.0.8/Makefile
++++ pim-0.0.8/Makefile	2008-04-24 22:14:37.000000000 +0300
+@@ -45,7 +45,7 @@
+ 
+ ### The object files (add further files here):
+ 
+-OBJS = $(PLUGIN).o calEvent.o calendar.o pimOsdMenu.o i18n.o \
++OBJS = $(PLUGIN).o calEvent.o calendar.o pimOsdMenu.o  \
+ 	calManager.o eventListMenu.o eventSetupMenu.o \
+ 	calEventMenuItem.o eventEditMenu.o pimSetup.o \
+ 	searchevents_thread.o
+@@ -64,9 +64,34 @@
+ 
+ -include $(DEPFILE)
+ 
++### Internationalization (I18N):
++
++PODIR     = po
++LOCALEDIR = $(VDRDIR)/locale
++I18Npo    = $(wildcard $(PODIR)/*.po)
++I18Nmsgs  = $(addprefix $(LOCALEDIR)/, $(addsuffix /LC_MESSAGES/vdr-$(PLUGIN).mo, $(notdir $(foreach file, $(I18Npo), $(basename $(file))))))
++I18Npot   = $(PODIR)/$(PLUGIN).pot
++
++%.mo: %.po
++	msgfmt -c -o $@ $<
++
++$(I18Npot): $(wildcard *.[ch] *.[ch]xx *.cc *.[ch]pp *.hh)
++	xgettext -C -cTRANSLATORS --no-wrap --no-location -k -ktr -ktrNOOP --msgid-bugs-address='<http://qa.mandriva.com/>' -o $@ $^
++
++%.po: $(I18Npot)
++	msgmerge -U --no-wrap --no-location --backup=none -q $@ $<
++	@touch $@
++
++$(I18Nmsgs): $(LOCALEDIR)/%/LC_MESSAGES/vdr-$(PLUGIN).mo: $(PODIR)/%.mo
++	@mkdir -p $(dir $@)
++	cp $< $@
++
++.PHONY: i18n
++i18n: $(I18Nmsgs)
++
+ ### Targets:
+ 
+-all: libvdr-$(PLUGIN).so
++all: libvdr-$(PLUGIN).so i18n
+ 
+ libvdr-$(PLUGIN).so: $(OBJS)
+ 	$(CXX) $(CXXFLAGS) -shared $(OBJS) -o $@
+@@ -82,4 +107,5 @@
+ 	@echo Distribution package created as $(PACKAGE).tgz
+ 
+ clean:
++	@-rm -f $(PODIR)/*.mo $(PODIR)/*.pot
+ 	@-rm -f $(OBJS) $(DEPFILE) *.so *.tgz core* *~
+Index: pim-0.0.8/calEvent.c
+===================================================================
+--- pim-0.0.8/calEvent.c
++++ pim-0.0.8/calEvent.c	2008-04-24 22:14:37.000000000 +0300
+@@ -38,7 +38,7 @@
+ #include <string>
+ #include <iostream>
+ 
+-#include "i18n.h"
++#include <vdr/i18n.h>
+ #include "calEvent.h"
+ 
+ // static member
+Index: pim-0.0.8/eventEditMenu.c
+===================================================================
+--- pim-0.0.8/eventEditMenu.c
++++ pim-0.0.8/eventEditMenu.c	2008-04-24 22:14:37.000000000 +0300
+@@ -42,7 +42,7 @@
+ #include "eventEditMenu.h"
+ #include "calManager.h"
+ #include "calEvent.h"
+-#include "i18n.h"
++
+ 
+ #include <vdr/menuitems.h>
+ #include <vdr/tools.h>
+Index: pim-0.0.8/eventListMenu.c
+===================================================================
+--- pim-0.0.8/eventListMenu.c
++++ pim-0.0.8/eventListMenu.c	2008-04-24 22:14:37.000000000 +0300
+@@ -46,7 +46,7 @@
+ #include "calEvent.h"
+ #include "calEventMenuItem.h"
+ #include "calManager.h"
+-#include "i18n.h"
++
+ 
+ #include <vdr/interface.h>
+ #include <vdr/menuitems.h>
+Index: pim-0.0.8/eventSetupMenu.c
+===================================================================
+--- pim-0.0.8/eventSetupMenu.c
++++ pim-0.0.8/eventSetupMenu.c	2008-04-24 22:14:37.000000000 +0300
+@@ -43,7 +43,7 @@
+ 
+ 
+ #include "eventSetupMenu.h"
+-#include "i18n.h"
++
+ #include "pimSetup.h"
+ #include "searchevents_thread.h"
+ 
+Index: pim-0.0.8/i18n.c
+===================================================================
+--- pim-0.0.8/i18n.c
++++ pim-0.0.8/i18n.c	2008-04-24 22:14:37.000000000 +0300
+@@ -1,2265 +0,0 @@
+-/*
+- * PIM: A Personal Information Manager Plugin for the Video Disk Recorder
+- *
+- * Copyright (C) 2004-2008, Achim Tuffentsammer <a.tuffentsammer@web.de>
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License as published by
+- * the Free Software Foundation; either version 2 of the License, or
+- * (at your option) any later version.
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- * 
+- * You should have received a copy of the GNU General Public License along
+- * with this program; if not, write to the Free Software Foundation, Inc.,
+- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+- *
+- * $Id: i18n.c,v 1.1.1.1 2005/02/17 05:45:52 sundin Exp $
+- *
+- * Tag: $Name:  $
+- *
+- * $Log: i18n.c,v $
+- * Revision 1.1.1.1  2005/02/17 05:45:52  sundin
+- * initial import ver0.0.5
+- *
+- * Revision 1.2  2005/01/17 18:29:49  ksltuf
+- * added finnish translations
+- *
+- * Revision 1.1.1.1  2005/01/17 18:06:31  ksltuf
+- * PIM-Plugin 0.0.4
+- *
+- * Revision 1.4  2004/12/13 07:59:04  ksltuf
+- * bugfix setup parsing; new option firstIsMonday
+- *
+- * Revision 1.3  2004/11/24 21:34:35  ksltuf
+- * Added new translation for "Delete Event?"
+- *
+- * Revision 1.2  2004/07/05 19:00:26  ksltuf
+- * Added COPYRIGHT and cvs information
+- *
+- * Italian translations provided by Gringo <vdr-italian@tiscali.it>
+- *
+- */
+-
+-#include "i18n.h"
+-
+-const tI18nPhrase pimPhrases[] = {
+-
+-  { "Calendar",			// English
+-    "Kalender",			// Deutsch
+-    "",				// Slovenski
+-    "Calendario",   	// Italiano
+-    "",				// Nederlands
+-    "",				// Português
+-    "",				// Français
+-    "",				// Norsk
+-    "Kalenteri",		// suomi (Finnish)
+-    "",				// Polski
+-    "",				// Español
+-    "",				// Greek
+-    "",				// Svenska
+-    "",				// Românã
+-    "",				// Magyar
+-    "",				// Català
+-#if VDRVERSNUM >= 10302
+-    "",				// Russian
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",				// Hrvatski
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",				// Eesti
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",				// Dansk
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",				// Czech
+-#endif
+-  },
+-
+-  { "Simple Personal Information Manager",
+-    "Simple Personal Information Manager",
+-    "",
+-    "Semplice gestore informazioni personali",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Kalenteri kuvaruutunäytölle",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "January",
+-    "Januar",
+-    "",
+-    "Gennaio",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Tammikuu",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "February",
+-    "Februar",
+-    "",
+-    "Febbraio",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Helmikuu",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "March",
+-    "März",
+-    "",
+-    "Marzo",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Maaliskuu",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "April",
+-    "April",
+-    "",
+-    "Aprile",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Huhtikuu",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "May",
+-    "Mai",
+-    "",
+-    "Maggio",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Toukokuu",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "June",
+-    "Juni",
+-    "",
+-    "Giugno",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Kesäkuu",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "July",
+-    "Juli",
+-    "",
+-    "Luglio",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Heinäkuu",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "August",
+-    "August",
+-    "",
+-    "Agosto",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Elokuu",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "September",
+-    "September",
+-    "",
+-    "Settembre",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Syyskuu",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "October",
+-    "Oktober",
+-    "",
+-    "Ottobre",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Lokakuu",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "November",
+-    "November",
+-    "",
+-    "Novembre",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Marraskuu",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "December",
+-    "Dezember",
+-    "",
+-    "Dicembre",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Joulukuu",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Today",
+-    "Heute",
+-    "",
+-    "Oggi",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Tänään",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Tomorrow",
+-    "Morgen",
+-    "",
+-    "Domani",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Huomispäivä",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Mo",
+-    "Mo",
+-    "",
+-    "Lu",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Ma",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Tu",
+-    "Di",
+-    "",
+-    "Ma",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Ti",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "We",
+-    "Mi",
+-    "",
+-    "Me",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Ke",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Th",
+-    "Do",
+-    "",
+-    "Gi",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "To",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Fr",
+-    "Fr",
+-    "",
+-    "Ve",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Pe",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Sa",
+-    "Sa",
+-    "",
+-    "Sa",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "La",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Su",
+-    "So",
+-    "",
+-    "Do",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Su",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Monday",
+-    "Montag",
+-    "",
+-    "Lunedì",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Maanantai",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Tuesday",
+-    "Dienstag",
+-    "",
+-    "Martedì",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Tiistai",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Wednesday",
+-    "Mittwoch",
+-    "",
+-    "Mercoledì",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Keskiviikko",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Thursday",
+-    "Donnerstag",
+-    "",
+-    "Giovedì",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Torstai",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Friday",
+-    "Freitag",
+-    "",
+-    "Venerdì",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Perjantai",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Saturday",
+-    "Samstag",
+-    "",
+-    "Sabato",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Lauantai",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Sunday",
+-    "Sonntag",
+-    "",
+-    "Domenica",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Sunnuntai",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Events",
+-    "Termine",
+-    "",
+-    "Eventi",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Tapahtumat",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Events for",
+-    "Termine für",
+-    "",
+-    "Eventi per",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Tapahtumat:",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Yearly",
+-    "Jährlich",
+-    "",
+-    "Annuale",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "vuosittainen",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Fix Day",
+-    "Fester Tag",
+-    "",
+-    "Giorno fisso",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "kerran",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Weekly",
+-    "Wöchentlich",
+-    "",
+-    "Settimanale",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "viikottainen",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Edit Event",
+-    "Termin ändern",
+-    "",
+-    "Modifica evento",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Muokkaa tapahtumaa",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Edit",
+-    "Ändern",
+-    "",
+-    "Modifica",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Muuttaa",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "New Event",
+-    "Neuer Termin",
+-    "",
+-    "Nuovo evento",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Uusi tapahtuma",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "New",
+-    "Neu",
+-    "",
+-    "Nuovo",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Uusi",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Event type",
+-    "Art des Termins",
+-    "",
+-    "Tipo evento",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Toistuva tapahtuma",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Day",
+-    "Tag",
+-    "",
+-    "Giorno",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Päivä",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Month",
+-    "Monat",
+-    "",
+-    "Mese",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Kuukausi",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Year",
+-    "Jahr",
+-    "",
+-    "Anno",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Vuosi",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Day Of Week",
+-    "Wochentag",
+-    "",
+-    "Giorno della settimana",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Viikonpäivä (",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Description",
+-    "Beschreibung",
+-    "",
+-    "Descrizione",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Kuvaus",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "List",
+-    "Liste",
+-    "",
+-    "Elenco",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Listaa",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "OSD Offset hor.",
+-    "OSD Versatz hor.",
+-    "",
+-    "Limite orizz. OSD",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Vaakakeskitys",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "OSD Offset vert.",
+-    "OSD Versatz vert.",
+-    "",
+-    "Limite verticale OSD",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Pystykeskitys",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Delete Event?",
+-    "Termin löschen?",
+-    "",
+-    "Cancellare evento?",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Poistetaanko tapahtuma?",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Delete",
+-    "Löschen",
+-    "",
+-    "Cancella",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Poistaa",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Week starts with",
+-    "Woche beginnt mit",
+-    "",
+-    "La settimana inizia il",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Ensimmäinen viikonpäivä",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Reminder mode",
+-    "Erinnerung anzeigen",
+-    "",
+-    "Modalità promenoria",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Velkomiskirje",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "off",
+-    "nein",
+-    "",
+-    "disattivo",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "ei",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "on",
+-    "ja",
+-    "",
+-    "attivo",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "kyllä",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "after 18 o'clock",
+-    "nach 18 Uhr",
+-    "",
+-    "dopo le ore 18",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "jäljessä 18 tunti",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Remind me",
+-    "Erinnerung anzeigen",
+-    "",
+-    "Ricordami",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "muistuttaa",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Remind days before",
+-    "Erinnerungstage zuvor",
+-    "",
+-    "Ricorda giorni prima",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "muistuttaa päivä edellä",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Show calendar weeks",
+-    "Kalenderwoche anzeigen",
+-    "",
+-    "Mostra calendario settimane",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "osoittaa kalenteri viikko",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "CW",
+-    "KW",
+-    "",
+-    "CS",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "KV",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "--- Data invalid ! ---",
+-    "--- Daten sind fehlerhaft ! ---",
+-    "",
+-    "--- Dati non validi ! ---",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "--- Data invalidi ! ---",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Preview months",
+-    "Monats-Vorschau",
+-    "",
+-    "Anteprima mesi",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Kuukausi pennakkoesitys",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Use invers event color",
+-    "Eventfarben tauschen",
+-    "",
+-    "Utilizza colore evento inverso",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Vaihtaa tapahtuma väri",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "at time",
+-    "Zeit",
+-    "",
+-    "alle",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "eri aika",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "at time (daily)",
+-    "Zeit (täglich)",
+-    "",
+-    "alle (giornaliero)",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "eri aika (päivittäin)",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Reminder time",
+-    "Erinnerungszeit",
+-    "",
+-    "Ricorda ora",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Karhukirje aika",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Check user activity",
+-    "Benutzeraktivität testen",
+-    "",
+-    "Verifica attività utente",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Käyttäjä aktiivisuus",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { "Remind delay (seconds)",
+-    "Erinnerung verzögern (Sekunden)",
+-    "",
+-    "Ricorda più tardi (secondi)",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "Karhukirje lykätä (hylkytavara)",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-    "",
+-#if VDRVERSNUM >= 10302
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10307
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10313
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10316
+-    "",
+-#endif
+-#if VDRVERSNUM >= 10342
+-    "",
+-#endif
+-  },
+-
+-  { NULL }
+-
+-};
+-
+Index: pim-0.0.8/i18n.h
+===================================================================
+--- pim-0.0.8/i18n.h
++++ pim-0.0.8/i18n.h	2008-04-24 22:14:37.000000000 +0300
+@@ -1,45 +0,0 @@
+-/*
+- * PIM: A Personal Information Manager Plugin for the Video Disk Recorder
+- *
+- * Copyright (C) 2004-2008, Achim Tuffentsammer <a.tuffentsammer@web.de>
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License as published by
+- * the Free Software Foundation; either version 2 of the License, or
+- * (at your option) any later version.
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- * 
+- * You should have received a copy of the GNU General Public License along
+- * with this program; if not, write to the Free Software Foundation, Inc.,
+- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+- *
+- * $Id: i18n.h,v 1.1.1.1 2005/02/17 05:45:54 sundin Exp $
+- *
+- * Tag: $Name:  $
+- *
+- * $Log: i18n.h,v $
+- * Revision 1.1.1.1  2005/02/17 05:45:54  sundin
+- * initial import ver0.0.5
+- *
+- * Revision 1.1.1.1  2005/01/17 18:06:31  ksltuf
+- * PIM-Plugin 0.0.4
+- *
+- * Revision 1.2  2004/07/05 19:00:26  ksltuf
+- * Added COPYRIGHT and cvs information
+- *
+- *
+- */
+-
+-
+-#ifndef __PLUGIN_PIM_I18N_H
+-#define __PLUGIN_PIM_I18N_H
+-
+-#include <vdr/i18n.h>
+-
+-extern const tI18nPhrase pimPhrases[];
+-
+-#endif
+Index: pim-0.0.8/pim.c
+===================================================================
+--- pim-0.0.8/pim.c
++++ pim-0.0.8/pim.c	2008-04-24 22:14:37.000000000 +0300
+@@ -54,7 +54,7 @@
+ #include <string>
+ 
+ #include "pim.h"
+-#include "i18n.h"
++
+ #include "calManager.h"
+ #include "calEvent.h"
+ #include "eventListMenu.h"
+@@ -97,7 +97,7 @@
+ bool cPluginPim::Initialize(void)
+ {
+   // Initialize any background activities the plugin shall perform.
+-  RegisterI18n(pimPhrases);
++  
+   return true;
+ }
+ 
+Index: pim-0.0.8/pim.h
+===================================================================
+--- pim-0.0.8/pim.h
++++ pim-0.0.8/pim.h	2008-04-24 22:14:37.000000000 +0300
+@@ -33,8 +33,8 @@
+ #include <vdr/plugin.h>
+ 
+ static const char *VERSION        = "0.0.8";
+-static const char *DESCRIPTION    = "Simple Personal Information Manager";
+-static const char *MAINMENUENTRY  = "Calendar";
++static const char *DESCRIPTION    = trNOOP("Simple Personal Information Manager");
++static const char *MAINMENUENTRY  = trNOOP("Calendar");
+ 
+ class cPluginPim : public cPlugin {
+ public:
+Index: pim-0.0.8/pimOsdMenu.c
+===================================================================
+--- pim-0.0.8/pimOsdMenu.c
++++ pim-0.0.8/pimOsdMenu.c	2008-04-24 22:14:37.000000000 +0300
+@@ -54,7 +54,7 @@
+ #include "calEvents.h"
+ #include "calendar.h"
+ #include "calManager.h"
+-#include "i18n.h"
++
+ 
+ #include <vdr/config.h>
+ #include <vdr/osd.h>
+Index: pim-0.0.8/searchevents_thread.c
+===================================================================
+--- pim-0.0.8/searchevents_thread.c
++++ pim-0.0.8/searchevents_thread.c	2008-04-24 22:14:37.000000000 +0300
+@@ -29,7 +29,7 @@
+ 
+ #include <string>
+ 
+-#include "i18n.h"
++
+ #include "searchevents_thread.h"
+ #include "pimSetup.h"
+ #include "calManager.h"
+Index: pim-0.0.8/po/de_DE.po
+===================================================================
+--- pim-0.0.8/po/de_DE.po
++++ pim-0.0.8/po/de_DE.po	2008-04-24 22:14:37.000000000 +0300
+@@ -0,0 +1,283 @@
++# VDR pim plugin language source file.
++# Copyright (C) YEAR THE VDR-pim'S COPYRIGHT HOLDER
++# This file is distributed under the same license as the VDR-pim package.
++# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
++#
++msgid ""
++msgstr ""
++"Project-Id-Version: VDR-pim\n"
++"Report-Msgid-Bugs-To: http://qa.mandriva.com/\n"
++"POT-Creation-Date: 2008-04-24 22:14+0300\n"
++"PO-Revision-Date: 2008-04-24 22:14+0300\n"
++"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
++"Language-Team: <vdr@linuxtv.org>\n"
++"MIME-Version: 1.0\n"
++"Content-Type: text/plain; charset=ISO-8859-15\n"
++"Content-Transfer-Encoding: 8bit\n"
++
++#: calEvent.c:231 eventEditMenu.c:65
++msgid "Fix Day"
++msgstr "Fester Tag"
++
++#: calEvent.c:236 eventEditMenu.c:66
++msgid "Weekly"
++msgstr "Wöchentlich"
++
++#: calEvent.c:240 eventEditMenu.c:67
++msgid "Yearly"
++msgstr "Jährlich"
++
++#: calendar.c:127 calendar.c:129 eventSetupMenu.c:69
++msgid "Mo"
++msgstr "Mo"
++
++#: calendar.c:127 calendar.c:139 eventSetupMenu.c:69
++msgid "Su"
++msgstr "So"
++
++#: calendar.c:129 calendar.c:131
++msgid "Tu"
++msgstr "Di"
++
++#: calendar.c:131 calendar.c:133
++msgid "We"
++msgstr "Mi"
++
++#: calendar.c:133 calendar.c:135
++msgid "Th"
++msgstr "Do"
++
++#: calendar.c:135 calendar.c:137
++msgid "Fr"
++msgstr "Fr"
++
++#: calendar.c:137 calendar.c:139
++msgid "Sa"
++msgstr "Sa"
++
++#: calendar.c:151
++msgid "January"
++msgstr "Januar"
++
++#: calendar.c:153
++msgid "February"
++msgstr "Februar"
++
++#: calendar.c:155
++msgid "March"
++msgstr "März"
++
++#: calendar.c:157
++msgid "April"
++msgstr "April"
++
++#: calendar.c:159
++msgid "May"
++msgstr "Mai"
++
++#: calendar.c:161
++msgid "June"
++msgstr "Juni"
++
++#: calendar.c:163
++msgid "July"
++msgstr "Juli"
++
++#: calendar.c:165
++msgid "August"
++msgstr "August"
++
++#: calendar.c:167
++msgid "September"
++msgstr "September"
++
++#: calendar.c:169
++msgid "October"
++msgstr "Oktober"
++
++#: calendar.c:171
++msgid "November"
++msgstr "November"
++
++#: calendar.c:173
++msgid "December"
++msgstr "Dezember"
++
++#: eventEditMenu.c:51
++msgid "Edit Event"
++msgstr "Termin ändern"
++
++#: eventEditMenu.c:59
++msgid "New Event"
++msgstr "Neuer Termin"
++
++#: eventEditMenu.c:69 searchevents_thread.c:163
++msgid "Monday"
++msgstr "Montag"
++
++#: eventEditMenu.c:70 searchevents_thread.c:164
++msgid "Tuesday"
++msgstr "Dienstag"
++
++#: eventEditMenu.c:71 searchevents_thread.c:165
++msgid "Wednesday"
++msgstr "Mittwoch"
++
++#: eventEditMenu.c:72 searchevents_thread.c:166
++msgid "Thursday"
++msgstr "Donnerstag"
++
++#: eventEditMenu.c:73 searchevents_thread.c:167
++msgid "Friday"
++msgstr "Freitag"
++
++#: eventEditMenu.c:74 searchevents_thread.c:168
++msgid "Saturday"
++msgstr "Samstag"
++
++#: eventEditMenu.c:75 searchevents_thread.c:162
++msgid "Sunday"
++msgstr "Sonntag"
++
++#: eventEditMenu.c:77
++msgid "Event type"
++msgstr "Art des Termins"
++
++#: eventEditMenu.c:79
++msgid "Day"
++msgstr "Tag"
++
++#: eventEditMenu.c:80
++msgid "Month"
++msgstr "Monat"
++
++#: eventEditMenu.c:81
++msgid "Year"
++msgstr "Jahr"
++
++#: eventEditMenu.c:84
++msgid "Day Of Week"
++msgstr "Wochentag"
++
++#: eventEditMenu.c:88
++msgid "Remind me"
++msgstr "Erinnerung anzeigen"
++
++#: eventEditMenu.c:88 eventSetupMenu.c:70 eventSetupMenu.c:71
++#: eventSetupMenu.c:72 eventSetupMenu.c:74
++msgid "off"
++msgstr "nein"
++
++#: eventEditMenu.c:88 eventSetupMenu.c:70 eventSetupMenu.c:71
++#: eventSetupMenu.c:72 eventSetupMenu.c:75
++msgid "on"
++msgstr "ja"
++
++#: eventEditMenu.c:92
++msgid "Remind days before"
++msgstr "Erinnerungstage zuvor"
++
++#: eventEditMenu.c:94
++msgid "Description"
++msgstr "Beschreibung"
++
++#: eventEditMenu.c:141
++msgid "--- Data invalid ! ---"
++msgstr "--- Daten sind fehlerhaft ! ---"
++
++#: eventListMenu.c:57 eventListMenu.c:92
++msgid "Events"
++msgstr "Termine"
++
++#: eventListMenu.c:61
++msgid "Events for"
++msgstr "Termine für"
++
++#: eventListMenu.c:87 eventListMenu.c:112
++msgid "Delete"
++msgstr "Löschen"
++
++#: eventListMenu.c:87 eventListMenu.c:112
++msgid "Edit"
++msgstr "Ändern"
++
++#: eventListMenu.c:87 eventListMenu.c:112
++msgid "New"
++msgstr "Neu"
++
++#: eventListMenu.c:153
++msgid "Delete Event?"
++msgstr "Termin löschen?"
++
++#: eventSetupMenu.c:67
++msgid "OSD Offset hor."
++msgstr "OSD Versatz hor."
++
++#: eventSetupMenu.c:68
++msgid "OSD Offset vert."
++msgstr "OSD Versatz vert."
++
++#: eventSetupMenu.c:69
++msgid "Week starts with"
++msgstr "Woche beginnt mit"
++
++#: eventSetupMenu.c:70
++msgid "Show calendar weeks"
++msgstr "Kalenderwoche anzeigen"
++
++#: eventSetupMenu.c:71
++msgid "Preview months"
++msgstr "Monats-Vorschau"
++
++#: eventSetupMenu.c:72
++msgid "Use invers event color"
++msgstr "Eventfarben tauschen"
++
++#: eventSetupMenu.c:76
++msgid "at time"
++msgstr "Zeit"
++
++#: eventSetupMenu.c:77
++msgid "at time (daily)"
++msgstr "Zeit (täglich)"
++
++#: eventSetupMenu.c:78
++msgid "Reminder mode"
++msgstr "Erinnerung anzeigen"
++
++#: eventSetupMenu.c:79
++msgid "Reminder time"
++msgstr "Erinnerungszeit"
++
++#: eventSetupMenu.c:80
++msgid "Remind delay (seconds)"
++msgstr "Erinnerung verzögern (Sekunden)"
++
++#: eventSetupMenu.c:81
++msgid "Check user activity"
++msgstr "Benutzeraktivität testen"
++
++#: pim.h:36
++msgid "Simple Personal Information Manager"
++msgstr "Simple Personal Information Manager"
++
++#: pim.h:37
++msgid "Calendar"
++msgstr "Kalender"
++
++#: pimOsdMenu.c:405 pimOsdMenu.c:406 pimOsdMenu.c:408
++#: searchevents_thread.c:148
++msgid "Today"
++msgstr "Heute"
++
++#: pimOsdMenu.c:423 pimOsdMenu.c:424 pimOsdMenu.c:426
++msgid "List"
++msgstr "Liste"
++
++#: pimOsdMenu.c:446
++msgid "CW"
++msgstr "KW"
++
++#: searchevents_thread.c:152
++msgid "Tomorrow"
++msgstr "Morgen"
+Index: pim-0.0.8/po/fi_FI.po
+===================================================================
+--- pim-0.0.8/po/fi_FI.po
++++ pim-0.0.8/po/fi_FI.po	2008-04-24 22:14:37.000000000 +0300
+@@ -0,0 +1,283 @@
++# VDR pim plugin language source file.
++# Copyright (C) YEAR THE VDR-pim'S COPYRIGHT HOLDER
++# This file is distributed under the same license as the VDR-pim package.
++# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
++#
++msgid ""
++msgstr ""
++"Project-Id-Version: VDR-pim\n"
++"Report-Msgid-Bugs-To: http://qa.mandriva.com/\n"
++"POT-Creation-Date: 2008-04-24 22:14+0300\n"
++"PO-Revision-Date: 2008-04-24 22:14+0300\n"
++"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
++"Language-Team: <vdr@linuxtv.org>\n"
++"MIME-Version: 1.0\n"
++"Content-Type: text/plain; charset=ISO-8859-15\n"
++"Content-Transfer-Encoding: 8bit\n"
++
++#: calEvent.c:231 eventEditMenu.c:65
++msgid "Fix Day"
++msgstr "kerran"
++
++#: calEvent.c:236 eventEditMenu.c:66
++msgid "Weekly"
++msgstr "viikottainen"
++
++#: calEvent.c:240 eventEditMenu.c:67
++msgid "Yearly"
++msgstr "vuosittainen"
++
++#: calendar.c:127 calendar.c:129 eventSetupMenu.c:69
++msgid "Mo"
++msgstr "Ma"
++
++#: calendar.c:127 calendar.c:139 eventSetupMenu.c:69
++msgid "Su"
++msgstr "Su"
++
++#: calendar.c:129 calendar.c:131
++msgid "Tu"
++msgstr "Ti"
++
++#: calendar.c:131 calendar.c:133
++msgid "We"
++msgstr "Ke"
++
++#: calendar.c:133 calendar.c:135
++msgid "Th"
++msgstr "To"
++
++#: calendar.c:135 calendar.c:137
++msgid "Fr"
++msgstr "Pe"
++
++#: calendar.c:137 calendar.c:139
++msgid "Sa"
++msgstr "La"
++
++#: calendar.c:151
++msgid "January"
++msgstr "Tammikuu"
++
++#: calendar.c:153
++msgid "February"
++msgstr "Helmikuu"
++
++#: calendar.c:155
++msgid "March"
++msgstr "Maaliskuu"
++
++#: calendar.c:157
++msgid "April"
++msgstr "Huhtikuu"
++
++#: calendar.c:159
++msgid "May"
++msgstr "Toukokuu"
++
++#: calendar.c:161
++msgid "June"
++msgstr "Kesäkuu"
++
++#: calendar.c:163
++msgid "July"
++msgstr "Heinäkuu"
++
++#: calendar.c:165
++msgid "August"
++msgstr "Elokuu"
++
++#: calendar.c:167
++msgid "September"
++msgstr "Syyskuu"
++
++#: calendar.c:169
++msgid "October"
++msgstr "Lokakuu"
++
++#: calendar.c:171
++msgid "November"
++msgstr "Marraskuu"
++
++#: calendar.c:173
++msgid "December"
++msgstr "Joulukuu"
++
++#: eventEditMenu.c:51
++msgid "Edit Event"
++msgstr "Muokkaa tapahtumaa"
++
++#: eventEditMenu.c:59
++msgid "New Event"
++msgstr "Uusi tapahtuma"
++
++#: eventEditMenu.c:69 searchevents_thread.c:163
++msgid "Monday"
++msgstr "Maanantai"
++
++#: eventEditMenu.c:70 searchevents_thread.c:164
++msgid "Tuesday"
++msgstr "Tiistai"
++
++#: eventEditMenu.c:71 searchevents_thread.c:165
++msgid "Wednesday"
++msgstr "Keskiviikko"
++
++#: eventEditMenu.c:72 searchevents_thread.c:166
++msgid "Thursday"
++msgstr "Torstai"
++
++#: eventEditMenu.c:73 searchevents_thread.c:167
++msgid "Friday"
++msgstr "Perjantai"
++
++#: eventEditMenu.c:74 searchevents_thread.c:168
++msgid "Saturday"
++msgstr "Lauantai"
++
++#: eventEditMenu.c:75 searchevents_thread.c:162
++msgid "Sunday"
++msgstr "Sunnuntai"
++
++#: eventEditMenu.c:77
++msgid "Event type"
++msgstr "Toistuva tapahtuma"
++
++#: eventEditMenu.c:79
++msgid "Day"
++msgstr "Päivä"
++
++#: eventEditMenu.c:80
++msgid "Month"
++msgstr "Kuukausi"
++
++#: eventEditMenu.c:81
++msgid "Year"
++msgstr "Vuosi"
++
++#: eventEditMenu.c:84
++msgid "Day Of Week"
++msgstr "Viikonpäivä ("
++
++#: eventEditMenu.c:88
++msgid "Remind me"
++msgstr "muistuttaa"
++
++#: eventEditMenu.c:88 eventSetupMenu.c:70 eventSetupMenu.c:71
++#: eventSetupMenu.c:72 eventSetupMenu.c:74
++msgid "off"
++msgstr "ei"
++
++#: eventEditMenu.c:88 eventSetupMenu.c:70 eventSetupMenu.c:71
++#: eventSetupMenu.c:72 eventSetupMenu.c:75
++msgid "on"
++msgstr "kyllä"
++
++#: eventEditMenu.c:92
++msgid "Remind days before"
++msgstr "muistuttaa päivä edellä"
++
++#: eventEditMenu.c:94
++msgid "Description"
++msgstr "Kuvaus"
++
++#: eventEditMenu.c:141
++msgid "--- Data invalid ! ---"
++msgstr "--- Data invalidi ! ---"
++
++#: eventListMenu.c:57 eventListMenu.c:92
++msgid "Events"
++msgstr "Tapahtumat"
++
++#: eventListMenu.c:61
++msgid "Events for"
++msgstr "Tapahtumat:"
++
++#: eventListMenu.c:87 eventListMenu.c:112
++msgid "Delete"
++msgstr "Poistaa"
++
++#: eventListMenu.c:87 eventListMenu.c:112
++msgid "Edit"
++msgstr "Muuttaa"
++
++#: eventListMenu.c:87 eventListMenu.c:112
++msgid "New"
++msgstr "Uusi"
++
++#: eventListMenu.c:153
++msgid "Delete Event?"
++msgstr "Poistetaanko tapahtuma?"
++
++#: eventSetupMenu.c:67
++msgid "OSD Offset hor."
++msgstr "Vaakakeskitys"
++
++#: eventSetupMenu.c:68
++msgid "OSD Offset vert."
++msgstr "Pystykeskitys"
++
++#: eventSetupMenu.c:69
++msgid "Week starts with"
++msgstr "Ensimmäinen viikonpäivä"
++
++#: eventSetupMenu.c:70
++msgid "Show calendar weeks"
++msgstr "osoittaa kalenteri viikko"
++
++#: eventSetupMenu.c:71
++msgid "Preview months"
++msgstr "Kuukausi pennakkoesitys"
++
++#: eventSetupMenu.c:72
++msgid "Use invers event color"
++msgstr "Vaihtaa tapahtuma väri"
++
++#: eventSetupMenu.c:76
++msgid "at time"
++msgstr "eri aika"
++
++#: eventSetupMenu.c:77
++msgid "at time (daily)"
++msgstr "eri aika (päivittäin)"
++
++#: eventSetupMenu.c:78
++msgid "Reminder mode"
++msgstr "Velkomiskirje"
++
++#: eventSetupMenu.c:79
++msgid "Reminder time"
++msgstr "Karhukirje aika"
++
++#: eventSetupMenu.c:80
++msgid "Remind delay (seconds)"
++msgstr "Karhukirje lykätä (hylkytavara)"
++
++#: eventSetupMenu.c:81
++msgid "Check user activity"
++msgstr "Käyttäjä aktiivisuus"
++
++#: pim.h:36
++msgid "Simple Personal Information Manager"
++msgstr "Kalenteri kuvaruutunäytölle"
++
++#: pim.h:37
++msgid "Calendar"
++msgstr "Kalenteri"
++
++#: pimOsdMenu.c:405 pimOsdMenu.c:406 pimOsdMenu.c:408
++#: searchevents_thread.c:148
++msgid "Today"
++msgstr "Tänään"
++
++#: pimOsdMenu.c:423 pimOsdMenu.c:424 pimOsdMenu.c:426
++msgid "List"
++msgstr "Listaa"
++
++#: pimOsdMenu.c:446
++msgid "CW"
++msgstr "KV"
++
++#: searchevents_thread.c:152
++msgid "Tomorrow"
++msgstr "Huomispäivä"
+Index: pim-0.0.8/po/it_IT.po
+===================================================================
+--- pim-0.0.8/po/it_IT.po
++++ pim-0.0.8/po/it_IT.po	2008-04-24 22:14:37.000000000 +0300
+@@ -0,0 +1,283 @@
++# VDR pim plugin language source file.
++# Copyright (C) YEAR THE VDR-pim'S COPYRIGHT HOLDER
++# This file is distributed under the same license as the VDR-pim package.
++# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
++#
++msgid ""
++msgstr ""
++"Project-Id-Version: VDR-pim\n"
++"Report-Msgid-Bugs-To: http://qa.mandriva.com/\n"
++"POT-Creation-Date: 2008-04-24 22:14+0300\n"
++"PO-Revision-Date: 2008-04-24 22:14+0300\n"
++"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
++"Language-Team: <vdr@linuxtv.org>\n"
++"MIME-Version: 1.0\n"
++"Content-Type: text/plain; charset=ISO-8859-15\n"
++"Content-Transfer-Encoding: 8bit\n"
++
++#: calEvent.c:231 eventEditMenu.c:65
++msgid "Fix Day"
++msgstr "Giorno fisso"
++
++#: calEvent.c:236 eventEditMenu.c:66
++msgid "Weekly"
++msgstr "Settimanale"
++
++#: calEvent.c:240 eventEditMenu.c:67
++msgid "Yearly"
++msgstr "Annuale"
++
++#: calendar.c:127 calendar.c:129 eventSetupMenu.c:69
++msgid "Mo"
++msgstr "Lu"
++
++#: calendar.c:127 calendar.c:139 eventSetupMenu.c:69
++msgid "Su"
++msgstr "Do"
++
++#: calendar.c:129 calendar.c:131
++msgid "Tu"
++msgstr "Ma"
++
++#: calendar.c:131 calendar.c:133
++msgid "We"
++msgstr "Me"
++
++#: calendar.c:133 calendar.c:135
++msgid "Th"
++msgstr "Gi"
++
++#: calendar.c:135 calendar.c:137
++msgid "Fr"
++msgstr "Ve"
++
++#: calendar.c:137 calendar.c:139
++msgid "Sa"
++msgstr "Sa"
++
++#: calendar.c:151
++msgid "January"
++msgstr "Gennaio"
++
++#: calendar.c:153
++msgid "February"
++msgstr "Febbraio"
++
++#: calendar.c:155
++msgid "March"
++msgstr "Marzo"
++
++#: calendar.c:157
++msgid "April"
++msgstr "Aprile"
++
++#: calendar.c:159
++msgid "May"
++msgstr "Maggio"
++
++#: calendar.c:161
++msgid "June"
++msgstr "Giugno"
++
++#: calendar.c:163
++msgid "July"
++msgstr "Luglio"
++
++#: calendar.c:165
++msgid "August"
++msgstr "Agosto"
++
++#: calendar.c:167
++msgid "September"
++msgstr "Settembre"
++
++#: calendar.c:169
++msgid "October"
++msgstr "Ottobre"
++
++#: calendar.c:171
++msgid "November"
++msgstr "Novembre"
++
++#: calendar.c:173
++msgid "December"
++msgstr "Dicembre"
++
++#: eventEditMenu.c:51
++msgid "Edit Event"
++msgstr "Modifica evento"
++
++#: eventEditMenu.c:59
++msgid "New Event"
++msgstr "Nuovo evento"
++
++#: eventEditMenu.c:69 searchevents_thread.c:163
++msgid "Monday"
++msgstr "Lunedì"
++
++#: eventEditMenu.c:70 searchevents_thread.c:164
++msgid "Tuesday"
++msgstr "Martedì"
++
++#: eventEditMenu.c:71 searchevents_thread.c:165
++msgid "Wednesday"
++msgstr "Mercoledì"
++
++#: eventEditMenu.c:72 searchevents_thread.c:166
++msgid "Thursday"
++msgstr "Giovedì"
++
++#: eventEditMenu.c:73 searchevents_thread.c:167
++msgid "Friday"
++msgstr "Venerdì"
++
++#: eventEditMenu.c:74 searchevents_thread.c:168
++msgid "Saturday"
++msgstr "Sabato"
++
++#: eventEditMenu.c:75 searchevents_thread.c:162
++msgid "Sunday"
++msgstr "Domenica"
++
++#: eventEditMenu.c:77
++msgid "Event type"
++msgstr "Tipo evento"
++
++#: eventEditMenu.c:79
++msgid "Day"
++msgstr "Giorno"
++
++#: eventEditMenu.c:80
++msgid "Month"
++msgstr "Mese"
++
++#: eventEditMenu.c:81
++msgid "Year"
++msgstr "Anno"
++
++#: eventEditMenu.c:84
++msgid "Day Of Week"
++msgstr "Giorno della settimana"
++
++#: eventEditMenu.c:88
++msgid "Remind me"
++msgstr "Ricordami"
++
++#: eventEditMenu.c:88 eventSetupMenu.c:70 eventSetupMenu.c:71
++#: eventSetupMenu.c:72 eventSetupMenu.c:74
++msgid "off"
++msgstr "disattivo"
++
++#: eventEditMenu.c:88 eventSetupMenu.c:70 eventSetupMenu.c:71
++#: eventSetupMenu.c:72 eventSetupMenu.c:75
++msgid "on"
++msgstr "attivo"
++
++#: eventEditMenu.c:92
++msgid "Remind days before"
++msgstr "Ricorda giorni prima"
++
++#: eventEditMenu.c:94
++msgid "Description"
++msgstr "Descrizione"
++
++#: eventEditMenu.c:141
++msgid "--- Data invalid ! ---"
++msgstr "--- Dati non validi ! ---"
++
++#: eventListMenu.c:57 eventListMenu.c:92
++msgid "Events"
++msgstr "Eventi"
++
++#: eventListMenu.c:61
++msgid "Events for"
++msgstr "Eventi per"
++
++#: eventListMenu.c:87 eventListMenu.c:112
++msgid "Delete"
++msgstr "Cancella"
++
++#: eventListMenu.c:87 eventListMenu.c:112
++msgid "Edit"
++msgstr "Modifica"
++
++#: eventListMenu.c:87 eventListMenu.c:112
++msgid "New"
++msgstr "Nuovo"
++
++#: eventListMenu.c:153
++msgid "Delete Event?"
++msgstr "Cancellare evento?"
++
++#: eventSetupMenu.c:67
++msgid "OSD Offset hor."
++msgstr "Limite orizz. OSD"
++
++#: eventSetupMenu.c:68
++msgid "OSD Offset vert."
++msgstr "Limite verticale OSD"
++
++#: eventSetupMenu.c:69
++msgid "Week starts with"
++msgstr "La settimana inizia il"
++
++#: eventSetupMenu.c:70
++msgid "Show calendar weeks"
++msgstr "Mostra calendario settimane"
++
++#: eventSetupMenu.c:71
++msgid "Preview months"
++msgstr "Anteprima mesi"
++
++#: eventSetupMenu.c:72
++msgid "Use invers event color"
++msgstr "Utilizza colore evento inverso"
++
++#: eventSetupMenu.c:76
++msgid "at time"
++msgstr "alle"
++
++#: eventSetupMenu.c:77
++msgid "at time (daily)"
++msgstr "alle (giornaliero)"
++
++#: eventSetupMenu.c:78
++msgid "Reminder mode"
++msgstr "Modalità promenoria"
++
++#: eventSetupMenu.c:79
++msgid "Reminder time"
++msgstr "Ricorda ora"
++
++#: eventSetupMenu.c:80
++msgid "Remind delay (seconds)"
++msgstr "Ricorda più tardi (secondi)"
++
++#: eventSetupMenu.c:81
++msgid "Check user activity"
++msgstr "Verifica attività utente"
++
++#: pim.h:36
++msgid "Simple Personal Information Manager"
++msgstr "Semplice gestore informazioni personali"
++
++#: pim.h:37
++msgid "Calendar"
++msgstr "Calendario"
++
++#: pimOsdMenu.c:405 pimOsdMenu.c:406 pimOsdMenu.c:408
++#: searchevents_thread.c:148
++msgid "Today"
++msgstr "Oggi"
++
++#: pimOsdMenu.c:423 pimOsdMenu.c:424 pimOsdMenu.c:426
++msgid "List"
++msgstr "Elenco"
++
++#: pimOsdMenu.c:446
++msgid "CW"
++msgstr "CS"
++
++#: searchevents_thread.c:152
++msgid "Tomorrow"
++msgstr "Domani"
+Index: pim-0.0.8/po/pim.pot
+===================================================================
+--- pim-0.0.8/po/pim.pot
++++ pim-0.0.8/po/pim.pot	2008-04-24 22:14:37.000000000 +0300
+@@ -0,0 +1,284 @@
++# SOME DESCRIPTIVE TITLE.
++# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
++# This file is distributed under the same license as the PACKAGE package.
++# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
++#
++#, fuzzy
++msgid ""
++msgstr ""
++"Project-Id-Version: PACKAGE VERSION\n"
++"Report-Msgid-Bugs-To: http://qa.mandriva.com/\n"
++"POT-Creation-Date: 2008-04-24 22:14+0300\n"
++"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
++"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
++"Language-Team: LANGUAGE <LL@li.org>\n"
++"MIME-Version: 1.0\n"
++"Content-Type: text/plain; charset=CHARSET\n"
++"Content-Transfer-Encoding: 8bit\n"
++
++#: calEvent.c:231 eventEditMenu.c:65
++msgid "Fix Day"
++msgstr ""
++
++#: calEvent.c:236 eventEditMenu.c:66
++msgid "Weekly"
++msgstr ""
++
++#: calEvent.c:240 eventEditMenu.c:67
++msgid "Yearly"
++msgstr ""
++
++#: calendar.c:127 calendar.c:129 eventSetupMenu.c:69
++msgid "Mo"
++msgstr ""
++
++#: calendar.c:127 calendar.c:139 eventSetupMenu.c:69
++msgid "Su"
++msgstr ""
++
++#: calendar.c:129 calendar.c:131
++msgid "Tu"
++msgstr ""
++
++#: calendar.c:131 calendar.c:133
++msgid "We"
++msgstr ""
++
++#: calendar.c:133 calendar.c:135
++msgid "Th"
++msgstr ""
++
++#: calendar.c:135 calendar.c:137
++msgid "Fr"
++msgstr ""
++
++#: calendar.c:137 calendar.c:139
++msgid "Sa"
++msgstr ""
++
++#: calendar.c:151
++msgid "January"
++msgstr ""
++
++#: calendar.c:153
++msgid "February"
++msgstr ""
++
++#: calendar.c:155
++msgid "March"
++msgstr ""
++
++#: calendar.c:157
++msgid "April"
++msgstr ""
++
++#: calendar.c:159
++msgid "May"
++msgstr ""
++
++#: calendar.c:161
++msgid "June"
++msgstr ""
++
++#: calendar.c:163
++msgid "July"
++msgstr ""
++
++#: calendar.c:165
++msgid "August"
++msgstr ""
++
++#: calendar.c:167
++msgid "September"
++msgstr ""
++
++#: calendar.c:169
++msgid "October"
++msgstr ""
++
++#: calendar.c:171
++msgid "November"
++msgstr ""
++
++#: calendar.c:173
++msgid "December"
++msgstr ""
++
++#: eventEditMenu.c:51
++msgid "Edit Event"
++msgstr ""
++
++#: eventEditMenu.c:59
++msgid "New Event"
++msgstr ""
++
++#: eventEditMenu.c:69 searchevents_thread.c:163
++msgid "Monday"
++msgstr ""
++
++#: eventEditMenu.c:70 searchevents_thread.c:164
++msgid "Tuesday"
++msgstr ""
++
++#: eventEditMenu.c:71 searchevents_thread.c:165
++msgid "Wednesday"
++msgstr ""
++
++#: eventEditMenu.c:72 searchevents_thread.c:166
++msgid "Thursday"
++msgstr ""
++
++#: eventEditMenu.c:73 searchevents_thread.c:167
++msgid "Friday"
++msgstr ""
++
++#: eventEditMenu.c:74 searchevents_thread.c:168
++msgid "Saturday"
++msgstr ""
++
++#: eventEditMenu.c:75 searchevents_thread.c:162
++msgid "Sunday"
++msgstr ""
++
++#: eventEditMenu.c:77
++msgid "Event type"
++msgstr ""
++
++#: eventEditMenu.c:79
++msgid "Day"
++msgstr ""
++
++#: eventEditMenu.c:80
++msgid "Month"
++msgstr ""
++
++#: eventEditMenu.c:81
++msgid "Year"
++msgstr ""
++
++#: eventEditMenu.c:84
++msgid "Day Of Week"
++msgstr ""
++
++#: eventEditMenu.c:88
++msgid "Remind me"
++msgstr ""
++
++#: eventEditMenu.c:88 eventSetupMenu.c:70 eventSetupMenu.c:71
++#: eventSetupMenu.c:72 eventSetupMenu.c:74
++msgid "off"
++msgstr ""
++
++#: eventEditMenu.c:88 eventSetupMenu.c:70 eventSetupMenu.c:71
++#: eventSetupMenu.c:72 eventSetupMenu.c:75
++msgid "on"
++msgstr ""
++
++#: eventEditMenu.c:92
++msgid "Remind days before"
++msgstr ""
++
++#: eventEditMenu.c:94
++msgid "Description"
++msgstr ""
++
++#: eventEditMenu.c:141
++msgid "--- Data invalid ! ---"
++msgstr ""
++
++#: eventListMenu.c:57 eventListMenu.c:92
++msgid "Events"
++msgstr ""
++
++#: eventListMenu.c:61
++msgid "Events for"
++msgstr ""
++
++#: eventListMenu.c:87 eventListMenu.c:112
++msgid "Delete"
++msgstr ""
++
++#: eventListMenu.c:87 eventListMenu.c:112
++msgid "Edit"
++msgstr ""
++
++#: eventListMenu.c:87 eventListMenu.c:112
++msgid "New"
++msgstr ""
++
++#: eventListMenu.c:153
++msgid "Delete Event?"
++msgstr ""
++
++#: eventSetupMenu.c:67
++msgid "OSD Offset hor."
++msgstr ""
++
++#: eventSetupMenu.c:68
++msgid "OSD Offset vert."
++msgstr ""
++
++#: eventSetupMenu.c:69
++msgid "Week starts with"
++msgstr ""
++
++#: eventSetupMenu.c:70
++msgid "Show calendar weeks"
++msgstr ""
++
++#: eventSetupMenu.c:71
++msgid "Preview months"
++msgstr ""
++
++#: eventSetupMenu.c:72
++msgid "Use invers event color"
++msgstr ""
++
++#: eventSetupMenu.c:76
++msgid "at time"
++msgstr ""
++
++#: eventSetupMenu.c:77
++msgid "at time (daily)"
++msgstr ""
++
++#: eventSetupMenu.c:78
++msgid "Reminder mode"
++msgstr ""
++
++#: eventSetupMenu.c:79
++msgid "Reminder time"
++msgstr ""
++
++#: eventSetupMenu.c:80
++msgid "Remind delay (seconds)"
++msgstr ""
++
++#: eventSetupMenu.c:81
++msgid "Check user activity"
++msgstr ""
++
++#: pim.h:36
++msgid "Simple Personal Information Manager"
++msgstr ""
++
++#: pim.h:37
++msgid "Calendar"
++msgstr ""
++
++#: pimOsdMenu.c:405 pimOsdMenu.c:406 pimOsdMenu.c:408
++#: searchevents_thread.c:148
++msgid "Today"
++msgstr ""
++
++#: pimOsdMenu.c:423 pimOsdMenu.c:424 pimOsdMenu.c:426
++msgid "List"
++msgstr ""
++
++#: pimOsdMenu.c:446
++msgid "CW"
++msgstr ""
++
++#: searchevents_thread.c:152
++msgid "Tomorrow"
++msgstr ""
