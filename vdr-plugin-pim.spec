@@ -1,20 +1,15 @@
-
 %define plugin	pim
-%define name	vdr-plugin-%plugin
-%define version	0.0.8
-%define rel	4
 
 Summary:	VDR plugin: Simple Personal Information Manager
-Name:		%name
-Version:	%version
-Release:	%mkrel %rel
+Name:		vdr-plugin-%plugin
+Version:	0.0.8
+Release:	5
 Group:		Video
 License:	GPL
 URL:		http://pim.vdr-developer.org/
 Source:		http://pim.vdr-developer.org/source/vdr-%plugin-%version.tgz
 Patch0:		pim-0.0.8-i18n-1.6.patch
 Patch1:		pim-format-string.patch
-BuildRoot:	%{_tmppath}/%{name}-buildroot
 BuildRequires:	vdr-devel >= 1.6.0
 Requires:	vdr-abi = %vdr_abi
 
@@ -32,17 +27,7 @@ store events.
 %vdr_plugin_build
 
 %install
-rm -rf %{buildroot}
 %vdr_plugin_install
-
-%clean
-rm -rf %{buildroot}
-
-%post
-%vdr_plugin_post %plugin
-
-%postun
-%vdr_plugin_postun %plugin
 
 %files -f %plugin.vdr
 %defattr(-,root,root)
