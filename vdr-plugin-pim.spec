@@ -3,7 +3,7 @@
 Summary:	VDR plugin: Simple Personal Information Manager
 Name:		vdr-plugin-%plugin
 Version:	0.0.8
-Release:	6
+Release:	7
 Group:		Video
 License:	GPL
 URL:		http://pim.vdr-developer.org/
