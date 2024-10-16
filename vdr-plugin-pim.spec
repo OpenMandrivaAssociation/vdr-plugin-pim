@@ -6,7 +6,7 @@ Version:	0.0.8
 Release:	7
 Group:		Video
 License:	GPL
-URL:		http://pim.vdr-developer.org/
+URL:		https://pim.vdr-developer.org/
 Source:		http://pim.vdr-developer.org/source/vdr-%plugin-%version.tgz
 Patch0:		pim-0.0.8-i18n-1.6.patch
 Patch1:		pim-format-string.patch
